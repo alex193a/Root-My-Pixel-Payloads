@@ -75,6 +75,9 @@ pixel10:
 pixel10proxl:
 	$(MAKE) TARGET=mustang-CP2A.260705.006
 
+pixel10profold:
+	$(MAKE) TARGET=rango-CP2A.260705.006
+
 pixel9pro:
 	$(MAKE) TARGET=caiman-CP2A.260605.012
 
