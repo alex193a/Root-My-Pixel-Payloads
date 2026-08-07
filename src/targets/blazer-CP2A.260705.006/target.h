@@ -1,4 +1,4 @@
-// mustang — Pixel 10 Pro XL, Android 17
+// blazer — Pixel 10 Pro, Android 17
 // Build: CP2A.260705.006
 // Kernel: 6.6.118-android15
 // Offsets extracted from boot.img via kallsyms-finder
@@ -8,12 +8,12 @@
 #define OFFSET_H
 
 #if defined(APP_PAYLOAD) && APP_PAYLOAD
-#define BUILD_VARIANT_LABEL "mustang-CP2A.260705.006-app"
+#define BUILD_VARIANT_LABEL "blazer-CP2A.260705.006-app"
 #else
-#define BUILD_VARIANT_LABEL "mustang-CP2A.260705.006-root-umh"
+#define BUILD_VARIANT_LABEL "blazer-CP2A.260705.006-root-umh"
 #endif
 #ifndef BUILD_FINGERPRINT
-#define BUILD_FINGERPRINT "google/mustang/mustang:17/CP2A.260705.006/15641320:user/release-keys"
+#define BUILD_FINGERPRINT "google/blazer/blazer:17/CP2A.260705.006/15430684:user/release-keys"
 #endif
 
 #define KIMAGE_TEXT_BASE 0xffffffc080000000ULL
@@ -26,7 +26,7 @@
 #define DIRECT_MAP_END 0xffffff9000000000ULL
 #define VMEMMAP_START 0xfffffffe00000000ULL
 
-// ── Kernel symbol offsets (extracted from mustang kallsyms) ──
+// ── Kernel symbol offsets (extracted from blazer kallsyms) ──
 #define ASHMEM_IOCTL_OFF            0x00c8d908ULL
 #define ASHMEM_MMAP_OFF             0x00c8e018ULL
 #define ASHMEM_OPEN_OFF             0x00c8e238ULL

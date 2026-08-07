@@ -69,32 +69,11 @@ clean:
 	rm -rf $(OUTDIR)
 
 # Convenience targets for common Pixel models
-pixel10:
-	$(MAKE) TARGET=frankel-CP2A.260605.012
+pixel10pro:
+	$(MAKE) TARGET=blazer-CP2A.260705.006
 
 pixel10proxl:
 	$(MAKE) TARGET=mustang-CP2A.260705.006
 
 pixel10profold:
 	$(MAKE) TARGET=rango-CP2A.260705.006
-
-pixel9pro:
-	$(MAKE) TARGET=caiman-CP2A.260605.012
-
-pixel9proxl:
-	$(MAKE) TARGET=komodo-CP2A.260605.012.C1
-
-pixel9:
-	$(MAKE) TARGET=tokay-CP2A.260605.012
-
-pixel8pro:
-	$(MAKE) TARGET=comet-CP2A.260605.012
-
-pixel8a:
-	$(MAKE) TARGET=rango-CP2A.260605.012
-
-pixel7:
-	$(MAKE) TARGET=panther-CP2A.260605.012
-
-pixel6:
-	$(MAKE) TARGET=oriole-CP2A.260605.012
