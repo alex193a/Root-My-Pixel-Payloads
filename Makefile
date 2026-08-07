@@ -7,6 +7,8 @@ OUTDIR ?= build/$(TARGET)
 
 TARGET_HEADER := src/targets/$(TARGET)/target.h
 TARGET_INCLUDE := targets/$(TARGET)/target.h
+OPTIMIZED_TARGET_HEADER := src/targets/$(TARGET)/optimized_target.h
+OPTIMIZED_TARGET_INCLUDE := targets/$(TARGET)/optimized_target.h
 TARGET_CC := $(ANDROID_NDK_HOME)/toolchains/llvm/prebuilt/$(shell uname -s | tr A-Z a-z)-x86_64/bin/aarch64-linux-android$(API)-clang
 
 ifeq ($(wildcard $(TARGET_CC)),)
@@ -28,7 +30,18 @@ APP_PRELOAD_SRCS := \
   src/root.c \
   src/preload.c
 
-COMMON_CFLAGS := \
+ifneq ($(wildcard $(OPTIMIZED_TARGET_HEADER)),)
+APP_PRELOAD_SRCS := src/optimized_exploit.c src/optimized_payload_wrap.c
+OPTIMIZED_DEPS := $(OPTIMIZED_TARGET_HEADER)
+RELEASE_OPT := -O2
+OPTIMIZED_CFLAGS := \
+  -Dmain=payload_entry \
+  -DOPTIMIZED_TARGET_CONFIG_H='"$(OPTIMIZED_TARGET_INCLUDE)"'
+endif
+
+RELEASE_OPT ?= -Oz
+
+COMMON_CFLAGS := $(OPTIMIZED_CFLAGS) \
   -O2 -g0 -Wall -Wextra \
   -Wno-unused-parameter -Wno-sign-compare \
   -Isrc -DTARGET_HEADER='"$(TARGET_INCLUDE)"' -DTARGET_CONFIG_H='"$(TARGET_INCLUDE)"'
@@ -47,12 +60,12 @@ $(OUTDIR):
 $(ROOT_HELPER): src/su_daemon.c | $(OUTDIR)
 	$(TARGET_CC) -fPIE -pie -O2 -g0 -Wall -Wextra $< -ldl -o $@
 
-$(APP_PRELOAD): $(APP_PRELOAD_SRCS) $(TARGET_HEADER) src/offset.h src/common.h src/kernelsnitch/*.h | $(OUTDIR)
+$(APP_PRELOAD): $(APP_PRELOAD_SRCS) $(TARGET_HEADER) $(OPTIMIZED_DEPS) src/offset.h src/common.h src/kernelsnitch/*.h | $(OUTDIR)
 	$(TARGET_CC) -DAPP_PAYLOAD=1 -fPIC $(COMMON_CFLAGS) $(APP_PRELOAD_SRCS) \
 	  -shared -pthread -o $@
 
-$(APP_RELEASE): $(APP_PRELOAD_SRCS) $(TARGET_HEADER) src/offset.h src/common.h src/kernelsnitch/*.h | $(OUTDIR)
-	$(TARGET_CC) -DAPP_PAYLOAD=1 -fPIC -Oz -g0 \
+$(APP_RELEASE): $(APP_PRELOAD_SRCS) $(TARGET_HEADER) $(OPTIMIZED_DEPS) src/offset.h src/common.h src/kernelsnitch/*.h | $(OUTDIR)
+	$(TARGET_CC) -DAPP_PAYLOAD=1 -fPIC $(RELEASE_OPT) -g0 $(OPTIMIZED_CFLAGS) \
 	  -fno-unwind-tables -fno-asynchronous-unwind-tables \
 	  -ffunction-sections -fdata-sections \
 	  -Wall -Wextra -Wno-unused-parameter -Wno-sign-compare \
