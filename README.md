@@ -36,18 +36,13 @@ ls src/targets/
 export ANDROID_NDK_HOME=/path/to/android-ndk
 
 # Build for a specific target
-make TARGET=frankel-CP2A.260605.012
+make TARGET=mustang-CP2A.260705.006
 
 # Or use convenience targets
-make pixel9pro       # frankel-CP2A.260605.012
-make pixel9          # tokay-CP2A.260605.012
-make pixel9proxl     # komodo-CP2A.260605.012.C1
-make pixel9a         # mustang-CP2A.260605.012
-make pixel8pro       # comet-CP2A.260605.012
-make pixel8a         # rango-CP2A.260605.012
-make pixel7          # panther-CP2A.260605.012
-make pixel6          # oriole-CP2A.260605.012
+make pixel10pro      # blazer-CP2A.260705.006
 make pixel10proxl    # mustang-CP2A.260705.006
+make pixel10profold  # rango-CP2A.260705.006
+make pixel7a         # lynx-CP2A.260705.006
 ```
 
 ## Credits

