@@ -108,6 +108,9 @@ pixel10proxl:
 pixel10profold:
 	$(MAKE) TARGET=rango-CP2A.260705.006
 
+pixel8pro:
+	$(MAKE) TARGET=husky-CP2A.260705.006
+
 pixel7a:
 	$(MAKE) TARGET=lynx-CP2A.260705.006
 
