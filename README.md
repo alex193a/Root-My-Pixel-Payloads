@@ -43,7 +43,9 @@ make pixel10pro      # blazer-CP2A.260705.006
 make pixel10proxl    # mustang-CP2A.260705.006
 make pixel10profold  # rango-CP2A.260705.006
 make pixel8pro       # husky-CP2A.260705.006
+make pixel8          # shiba-CP2A.260705.006
 make pixel7a         # lynx-CP2A.260705.006
+make pixel7pro       # cheetah-CP2A.260705.006
 make pixel7          # panther-CP2A.260705.006
 ```
 
