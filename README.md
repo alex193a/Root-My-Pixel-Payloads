@@ -48,6 +48,7 @@ make pixel8          # shiba-CP2A.260705.006
 make pixel7a         # lynx-CP2A.260705.006
 make pixel7pro       # cheetah-CP2A.260705.006
 make pixel7          # panther-CP2A.260705.006
+make pixel6a         # bluejay-CP2A.260705.006 / bluejay-CP1A.260405.005
 ```
 
 ## Credits
