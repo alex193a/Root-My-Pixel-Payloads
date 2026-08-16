@@ -31,7 +31,7 @@ ROOT_HELPER := $(OUTDIR)/cve-2026-43499-root
 # TCP main route, rounded futex_hash) + the mirrored shared TUs that must
 # live in src/61/ so their #include "common.h" resolves to src/61/common.h.
 # ---------------------------------------------------------------------------
-sixone-targets := bluejay-CP1A.260405.005 bluejay-CP2A.260705.006 shiba-CP2A.260705.006 husky-CP2A.260705.006 tokay-CP2A.260605.012 tegu-CP2A.260705.006 lynx-CP2A.260705.006 panther-CP2A.260705.006 cheetah-CP2A.260705.006 comet-CP2A.260705.006
+sixone-targets := oriole-CP2A.260705.006 bluejay-CP1A.260405.005 bluejay-CP2A.260705.006 shiba-CP2A.260705.006 husky-CP2A.260705.006 tokay-CP2A.260605.012 tegu-CP2A.260705.006 lynx-CP2A.260705.006 panther-CP2A.260705.006 cheetah-CP2A.260705.006 comet-CP2A.260705.006
 ifneq ($(filter $(TARGET),$(sixone-targets)),)
 SLIDE_SRC := src/61/slide61.c
 APP_PRELOAD_SRCS := \
@@ -132,3 +132,6 @@ pixel7:
 pixel6a:
 	$(MAKE) TARGET=bluejay-CP1A.260405.005
 	$(MAKE) TARGET=bluejay-CP2A.260705.006
+
+pixel6:
+	$(MAKE) TARGET=oriole-CP2A.260705.006
