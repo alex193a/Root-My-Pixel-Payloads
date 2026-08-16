@@ -2,7 +2,7 @@
 # Builds the CVE-2026-43499 exploit payload for Google Pixel devices.
 
 API ?= 35
-TARGET ?= frankel-CP2A.260605.012
+TARGET ?= frankel-CP2A.260705.006
 OUTDIR ?= build/$(TARGET)
 
 TARGET_HEADER := src/targets/$(TARGET)/target.h
@@ -104,6 +104,9 @@ pixel10profold:
 
 pixel10pro:
 	$(MAKE) TARGET=blazer-CP2A.260705.006
+
+pixel10:
+	$(MAKE) TARGET=frankel-CP2A.260705.006
 
 pixel10proxl:
 	$(MAKE) TARGET=mustang-CP2A.260705.006

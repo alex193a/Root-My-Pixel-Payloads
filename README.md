@@ -40,6 +40,7 @@ make TARGET=mustang-CP2A.260705.006
 
 # Or use convenience targets
 make pixel10pro      # blazer-CP2A.260705.006
+make pixel10         # frankel-CP2A.260705.006
 make pixel10proxl    # mustang-CP2A.260705.006
 make pixel10profold  # rango-CP2A.260705.006
 make pixel9profold   # comet-CP2A.260705.006
