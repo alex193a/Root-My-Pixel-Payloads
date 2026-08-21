@@ -44,6 +44,7 @@ make pixel10         # frankel-CP2A.260705.006
 make pixel10proxl    # mustang-CP2A.260705.006
 make pixel10profold  # rango-CP2A.260705.006
 make pixel9profold   # comet-CP2A.260705.006
+make pixel9pro       # caiman-CP2A.260705.006
 make pixel8pro       # husky-CP2A.260705.006
 make pixel8          # shiba-CP2A.260705.006
 make pixel7a         # lynx-CP2A.260705.006
