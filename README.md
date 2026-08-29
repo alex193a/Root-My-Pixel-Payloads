@@ -39,6 +39,7 @@ export ANDROID_NDK_HOME=/path/to/android-ndk
 make TARGET=mustang-CP2A.260705.006
 
 # Or use convenience targets
+make pixel10a        # stallion-CP2A.260805.005
 make pixel10pro      # blazer-CP2A.260705.006
 make pixel10         # frankel-CP2A.260705.006
 make pixel10proxl    # mustang-CP2A.260705.006
