@@ -143,6 +143,7 @@ pixel7pro:
 
 pixel7:
 	$(MAKE) TARGET=panther-CP2A.260705.006
+	$(MAKE) TARGET=panther-BP2A.250705.008
 
 pixel6a:
 	$(MAKE) TARGET=bluejay-CP1A.260405.005
