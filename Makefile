@@ -31,7 +31,7 @@ ROOT_HELPER := $(OUTDIR)/cve-2026-43499-root
 # TCP main route, rounded futex_hash) + the mirrored shared TUs that must
 # live in src/61/ so their #include "common.h" resolves to src/61/common.h.
 # ---------------------------------------------------------------------------
-sixone-targets := stallion-CP2A.260805.005 raven-CP2A.260705.006 oriole-CP2A.260705.006 bluejay-CP1A.260405.005 bluejay-CP2A.260705.006 shiba-CP2A.260705.006 husky-CP2A.260705.006 tokay-CP2A.260705.006 komodo-CP2A.260705.006 tegu-CP2A.260705.006 lynx-CP2A.260705.006 panther-CP2A.260705.006 panther-BP2A.250705.008 cheetah-CP2A.260705.006 comet-CP2A.260705.006 akita-CP2A.260805.005 caiman-CP2A.260705.006 tangorpro-BP1A.250405.007 felix-CP2A.260605.012
+sixone-targets := stallion-CP2A.260805.005 raven-CP2A.260705.006 oriole-CP2A.260705.006 bluejay-CP1A.260405.005 bluejay-CP2A.260705.006 shiba-CP2A.260705.006 husky-CP2A.260705.006 tokay-CP2A.260705.006 tokay-AD1A.240905.004 komodo-CP2A.260705.006 tegu-CP2A.260705.006 lynx-CP2A.260705.006 panther-CP2A.260705.006 panther-BP2A.250705.008 cheetah-CP2A.260705.006 comet-CP2A.260705.006 akita-CP2A.260805.005 caiman-CP2A.260705.006 tangorpro-BP1A.250405.007 felix-CP2A.260605.012
 ifneq ($(filter $(TARGET),$(sixone-targets)),)
 SLIDE_SRC := src/61/slide61.c
 APP_PRELOAD_SRCS := \
@@ -125,6 +125,7 @@ pixel9proxl:
 
 pixel9:
 	$(MAKE) TARGET=tokay-CP2A.260705.006
+	$(MAKE) TARGET=tokay-AD1A.240905.004
 
 pixel8pro:
 	$(MAKE) TARGET=husky-CP2A.260705.006
