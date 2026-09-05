@@ -1002,7 +1002,7 @@ static int payload_runner_main(int argc, char **argv) {
   if (setenv("CVE43499_ROOT_HELPER", argv[3], 1) != 0) {
     _exit(errno ? errno : EIO);
   }
-  dprintf(STDERR_FILENO, "[app] loading verified payload=%s\n", argv[2]);
+  dprintf(STDERR_FILENO, "[app] loading payload=%s\n", argv[2]);
   void *handle = dlopen(argv[2], RTLD_NOW | RTLD_LOCAL);
   if (!handle) {
     dprintf(STDERR_FILENO, "[app] dlopen failed: %s\n", dlerror());
