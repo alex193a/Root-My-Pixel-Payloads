@@ -47,7 +47,7 @@ APP_PRELOAD_SRCS := \
   src/61/root.c \
   src/61/preload.c
 COMMON_INC := -Isrc/61 -Isrc
-COMMON_DEPS := src/61/common.h src/61/kernelsnitch/*.h
+COMMON_DEPS := src/61/common.h src/workspace.h src/61/kernelsnitch/*.h
 else ifneq ($(filter $(TARGET),$(sixtwelve-targets)),)
 SLIDE_SRC := src/612/slide612.c
 APP_PRELOAD_SRCS := \
@@ -59,7 +59,7 @@ APP_PRELOAD_SRCS := \
   src/612/root.c \
   src/612/preload.c
 COMMON_INC := -Isrc/612 -Isrc
-COMMON_DEPS := src/612/common.h src/612/kernelsnitch/*.h
+COMMON_DEPS := src/612/common.h src/workspace.h src/612/kernelsnitch/*.h
 else
 SLIDE_SRC := src/slide.c
 APP_PRELOAD_SRCS := \
@@ -71,7 +71,7 @@ APP_PRELOAD_SRCS := \
   src/root.c \
   src/preload.c
 COMMON_INC := -Isrc
-COMMON_DEPS := src/common.h src/kernelsnitch/*.h
+COMMON_DEPS := src/common.h src/workspace.h src/kernelsnitch/*.h
 endif
 
 COMMON_CFLAGS := \
@@ -90,7 +90,7 @@ release: $(APP_RELEASE)
 $(OUTDIR):
 	mkdir -p $@
 
-$(ROOT_HELPER): src/su_daemon.c | $(OUTDIR)
+$(ROOT_HELPER): src/su_daemon.c src/workspace.h | $(OUTDIR)
 	$(TARGET_CC) -fPIE -pie -O2 -g0 -Wall -Wextra $< -ldl -o $@
 
 $(APP_PRELOAD): $(APP_PRELOAD_SRCS) $(TARGET_HEADER) src/offset.h $(COMMON_DEPS) | $(OUTDIR)

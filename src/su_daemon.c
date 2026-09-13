@@ -22,12 +22,26 @@
 #include <sys/wait.h>
 #include <termios.h>
 #include <unistd.h>
+#include "workspace.h"
 
-#define BOOTSTRAP_SOCK_PATH "/data/local/tmp/temp_su.sock"
 #define HOLD_READY_SOCKET "cve43499_roothold"
 #define SH_PATH "/system/bin/sh"
-#define S25U_KSUD_PATH "/data/local/tmp/ksud-pixel"
 #define LOGCAT_PATH "/system/bin/logcat"
+
+static char work_dir_path[128];
+static char bootstrap_sock_path[128];
+static char s25u_ksud_path[128];
+const char rmp_workspace_contract[] __attribute__((used, visibility("default"))) =
+    "RMP_WORKSPACE_CONTRACT:v1";
+
+static int init_work_paths(void) {
+  if (!rmp_resolve_work_dir(work_dir_path, sizeof(work_dir_path))) {
+    return 0;
+  }
+  return rmp_work_path(bootstrap_sock_path, sizeof(bootstrap_sock_path),
+                       "temp_su.sock") &&
+         rmp_work_path(s25u_ksud_path, sizeof(s25u_ksud_path), "ksud-pixel");
+}
 
 static uid_t allowed_client_uid = 2000;
 static uid_t allowed_app_uid = (uid_t)-1;
@@ -147,7 +161,7 @@ static int connect_daemon(void) {
   struct sockaddr_un sun;
   memset(&sun, 0, sizeof(sun));
   sun.sun_family = AF_UNIX;
-  snprintf(sun.sun_path, sizeof(sun.sun_path), "%s", BOOTSTRAP_SOCK_PATH);
+  snprintf(sun.sun_path, sizeof(sun.sun_path), "%s", bootstrap_sock_path);
 
   if (connect(fd, (struct sockaddr *)&sun, sizeof(sun)) != 0) {
     perror("su: connect daemon");
@@ -465,7 +479,7 @@ static int run_s25u_late_load(struct su_request *request, int conn) {
               strerror(errno));
       _exit(10);
     }
-    if (mount(S25U_KSUD_PATH, LOGCAT_PATH, NULL, MS_BIND, NULL) != 0) {
+    if (mount(s25u_ksud_path, LOGCAT_PATH, NULL, MS_BIND, NULL) != 0) {
       dprintf(STDERR_FILENO, "late-load: bind mount: %s\n", strerror(errno));
       _exit(11);
     }
@@ -760,6 +774,28 @@ static int client_main(int argc, char **argv) {
     return 1;
   }
 
+  if (argc == 2 && strcmp(argv[1], "--daemon-work-dir") == 0) {
+    char operation = 'W';
+    uint32_t length = 0;
+    char reported[128];
+    if (!write_full(conn, &operation, sizeof(operation)) ||
+        !read_full(conn, &length, sizeof(length)) ||
+        length == 0 || length >= sizeof(reported) ||
+        !read_full(conn, reported, length)) {
+      close(conn);
+      return 1;
+    }
+    reported[length] = '\0';
+    if (!rmp_is_valid_session_work_dir(reported) &&
+        strcmp(reported, RMP_LEGACY_WORK_DIR) != 0) {
+      close(conn);
+      return 1;
+    }
+    dprintf(STDOUT_FILENO, "%s\n", reported);
+    close(conn);
+    return 0;
+  }
+
   int interactive = isatty(STDIN_FILENO);
   int io_pair[2];
   if (socketpair(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0, io_pair) != 0) {
@@ -834,6 +870,17 @@ static void serve_one(int conn) {
     hold_kernel_references(conn);
     return;
   }
+  if (recv(conn, &operation, sizeof(operation), MSG_PEEK) ==
+          (ssize_t)sizeof(operation) &&
+      operation == 'W') {
+    if (!read_full(conn, &operation, sizeof(operation))) {
+      return;
+    }
+    uint32_t length = (uint32_t)strlen(work_dir_path);
+    write_full(conn, &length, sizeof(length));
+    write_full(conn, work_dir_path, length);
+    return;
+  }
 
   struct su_request request;
   if (!recv_request(conn, &request)) {
@@ -879,16 +926,17 @@ static int daemon_main(void) {
   struct sockaddr_un sun;
   memset(&sun, 0, sizeof(sun));
   sun.sun_family = AF_UNIX;
-  unlink(BOOTSTRAP_SOCK_PATH);
-  snprintf(sun.sun_path, sizeof(sun.sun_path), "%s", BOOTSTRAP_SOCK_PATH);
+  unlink(bootstrap_sock_path);
+  snprintf(sun.sun_path, sizeof(sun.sun_path), "%s", bootstrap_sock_path);
 
   if (bind(fd, (struct sockaddr *)&sun, sizeof(sun)) != 0 ||
       listen(fd, 16) != 0) {
-    dprintf(STDERR_FILENO, "daemon: bind/listen errno=%d path=%s\n", errno, BOOTSTRAP_SOCK_PATH);
+    dprintf(STDERR_FILENO, "daemon: bind/listen errno=%d path=%s\n", errno,
+            bootstrap_sock_path);
     close(fd);
     return 1;
   }
-  chmod(BOOTSTRAP_SOCK_PATH, 0666);
+  chmod(bootstrap_sock_path, 0666);
 
   for (;;) {
     int conn = accept4(fd, NULL, NULL, SOCK_CLOEXEC);
@@ -1014,6 +1062,10 @@ static int payload_runner_main(int argc, char **argv) {
 
 int main(int argc, char **argv) {
   signal(SIGPIPE, SIG_IGN);
+  if (!init_work_paths()) {
+    dprintf(STDERR_FILENO, "invalid RMP work directory\n");
+    return 2;
+  }
   if (argc >= 2 && strcmp(argv[1], "--run-payload") == 0) {
     return payload_runner_main(argc, argv);
   }

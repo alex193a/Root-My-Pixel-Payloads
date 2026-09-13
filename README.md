@@ -23,8 +23,9 @@ ls src/targets/
    - Root + SELinux permissive via credential/SID patching
 
 2. **Root daemon** — spawns via `call_usermodehelper`
-   - Listens on Unix socket for commands
-   - Launches `ksud late-load` to install ReSukiSU
+   - Uses the validated `RMP_WORK_DIR` session workspace supplied by the app
+   - Listens on a Unix socket inside that workspace and reports the active path through a handshake
+   - Launches the workspace-scoped `ksud late-load` to install ReSukiSU
 
 3. **KernelSU late-load** — uses vanilla ReSukiSU
    - Loads via standard `init_module` syscall

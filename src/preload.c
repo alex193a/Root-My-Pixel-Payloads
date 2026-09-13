@@ -3,14 +3,25 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <sys/stat.h>
+#include "workspace.h"
 
 #define SU_DST_DIR "/apex/com.android.virt/bin"
 #define SU_DST SU_DST_DIR "/su"
-#define SU_LOCAL "/data/local/tmp/su"
-#define SU_SOCK "/data/local/tmp/temp_su.sock"
-#define SU_LOG "/data/local/tmp/su_daemon.log"
+#define WORK_DIR_CONFIG_TEMP RMP_WORK_DIR_CONFIG ".new"
 // No embedded blobs: the su daemon binary is copied from the on-device
 // helper (CVE43499_ROOT_HELPER, set by the --run-payload loader).
+
+static char su_local[128];
+static char su_sock[128];
+static char su_log[128];
+const char rmp_workspace_contract[] __attribute__((used, visibility("default"))) =
+    "RMP_WORKSPACE_CONTRACT:v1";
+
+static int init_work_paths(void) {
+  return rmp_work_path(su_local, sizeof(su_local), "su") &&
+         rmp_work_path(su_sock, sizeof(su_sock), "temp_su.sock") &&
+         rmp_work_path(su_log, sizeof(su_log), "su_daemon.log");
+}
 
 static int write_full(int fd, const void *buf, size_t len) {
   const unsigned char *p = buf;
@@ -25,6 +36,39 @@ static int write_full(int fd, const void *buf, size_t len) {
     p += n;
     len -= (size_t)n;
   }
+  return 1;
+}
+
+static int write_work_dir_config(void) {
+  char work_dir[128];
+  if (!rmp_resolve_work_dir(work_dir, sizeof(work_dir))) {
+    errno = EINVAL;
+    return 0;
+  }
+
+  unlink(WORK_DIR_CONFIG_TEMP);
+  int fd = open(WORK_DIR_CONFIG_TEMP,
+                O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC | O_NOFOLLOW, 0600);
+  if (fd < 0) {
+    return 0;
+  }
+  int ok = write_full(fd, work_dir, strlen(work_dir)) &&
+           write_full(fd, "\n", 1) && fchown(fd, 0, 0) == 0 &&
+           fchmod(fd, 0644) == 0 && fsync(fd) == 0;
+  int saved_errno = errno;
+  if (close(fd) != 0 && ok) {
+    ok = 0;
+    saved_errno = errno;
+  }
+  if (!ok || rename(WORK_DIR_CONFIG_TEMP, RMP_WORK_DIR_CONFIG) != 0) {
+    if (ok) {
+      saved_errno = errno;
+    }
+    unlink(WORK_DIR_CONFIG_TEMP);
+    errno = saved_errno;
+    return 0;
+  }
+  errno = saved_errno;
   return 1;
 }
 
@@ -110,7 +154,8 @@ static int write_embedded_su_file(const char *dir, const char *dst) {
   snprintf(tmp, sizeof(tmp), "%s/.su.new.%d", dir, getpid());
   unlink(tmp);
 
-  int fd = open(tmp, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0755);
+  int fd = open(tmp,
+                O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC | O_NOFOLLOW, 0600);
   if (fd < 0) {
     pr_error("embedded su: open(%s) errno=%d\n", tmp, errno);
     return 0;
@@ -119,7 +164,7 @@ static int write_embedded_su_file(const char *dir, const char *dst) {
   int saved_errno = errno;
   pr_info("embedded su: copy ok=%d errno=%d\n", ok, saved_errno);
   if (ok) {
-    ok = fchown(fd, 0, 0) == 0 && fchmod(fd, 0755) == 0;
+    ok = fchown(fd, 0, 0) == 0 && fchmod(fd, 0755) == 0 && fsync(fd) == 0;
     saved_errno = errno;
     pr_info("embedded su: fchown/fchmod ok=%d errno=%d\n", ok, saved_errno);
   }
@@ -150,6 +195,9 @@ static int write_embedded_su_file(const char *dir, const char *dst) {
 
 static int write_embedded_su(void) {
   if (!ensure_su_mount()) {
+    return 0;
+  }
+  if (!write_work_dir_config()) {
     return 0;
   }
   return write_embedded_su_file(SU_DST_DIR, SU_DST);
@@ -199,7 +247,10 @@ static int install_su_in_pid_mntns(pid_t target) {
     if (!ensure_su_mount()) {
       _exit(4);
     }
-    _exit(write_embedded_su_file(SU_DST_DIR, SU_DST) ? 0 : 5);
+    if (!write_work_dir_config()) {
+      _exit(5);
+    }
+    _exit(write_embedded_su_file(SU_DST_DIR, SU_DST) ? 0 : 6);
   }
   if (child < 0) {
     return 0;
@@ -223,8 +274,13 @@ static int install_adb_visible_su(void) {
 }
 
 static int install_local_su_client(void) {
-  int ok = write_embedded_su_file("/data/local/tmp", SU_LOCAL);
-  pr_info("local su client install ok=%d path=%s\n", ok, SU_LOCAL);
+  char work_dir[128];
+  if (!rmp_resolve_work_dir(work_dir, sizeof(work_dir))) {
+    errno = EINVAL;
+    return 0;
+  }
+  int ok = write_embedded_su_file(work_dir, su_local);
+  pr_info("local su client install ok=%d path=%s\n", ok, su_local);
   return ok;
 }
 
@@ -247,7 +303,7 @@ static void run_su_daemon_direct(const char *client_uid) {
   if (null_fd >= 0) {
     dup2(null_fd, STDIN_FILENO);
   }
-  int log_fd = open(SU_LOG, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0666);
+  int log_fd = open(su_log, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0666);
   if (log_fd >= 0) {
     dup2(log_fd, STDOUT_FILENO);
     dup2(log_fd, STDERR_FILENO);
@@ -258,7 +314,7 @@ static void run_su_daemon_direct(const char *client_uid) {
    * Se vedi "socket created" nel log, il problema è execl/dynamic linking.
    * Se non vedi nemmeno questo, il problema è fork/credenziali.
    */
-  unlink(SU_SOCK);
+  unlink(su_sock);
   int fd = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
   if (fd < 0) {
     pr_error("fallback daemon: socket() errno=%d\n", errno);
@@ -268,7 +324,7 @@ static void run_su_daemon_direct(const char *client_uid) {
   struct sockaddr_un sun;
   memset(&sun, 0, sizeof(sun));
   sun.sun_family = AF_UNIX;
-  snprintf(sun.sun_path, sizeof(sun.sun_path), "%s", SU_SOCK);
+  snprintf(sun.sun_path, sizeof(sun.sun_path), "%s", su_sock);
 
   if (bind(fd, (struct sockaddr *)&sun, sizeof(sun)) != 0 ||
       listen(fd, 4) != 0) {
@@ -276,8 +332,8 @@ static void run_su_daemon_direct(const char *client_uid) {
     close(fd);
     _exit(1);
   }
-  chmod(SU_SOCK, 0666);
-  pr_info("fallback daemon: listening on %s (uid=%s)\n", SU_SOCK, client_uid);
+  chmod(su_sock, 0666);
+  pr_info("fallback daemon: listening on %s (uid=%s)\n", su_sock, client_uid);
 
   /* Loop minimale: accetta e chiudi subito (o implementa echo) */
   for (;;) {
@@ -295,8 +351,8 @@ static void run_su_daemon_direct(const char *client_uid) {
 }
 
 static pid_t start_su_daemon(void) {
-  unlink(SU_SOCK);
-  unlink(SU_LOG);
+  unlink(su_sock);
+  unlink(su_log);
 
   const char *client_uid = getenv("RMG_CLIENT_UID");
   if (!client_uid || !client_uid[0]) {
@@ -318,7 +374,7 @@ static pid_t start_su_daemon(void) {
     setsid();
 
     /* Log immediato per debug */
-    int log_fd = open(SU_LOG, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0666);
+    int log_fd = open(su_log, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0666);
     if (log_fd >= 0) {
       dup2(log_fd, STDOUT_FILENO);
       dup2(log_fd, STDERR_FILENO);
@@ -395,6 +451,11 @@ int install_embedded_su(pid_t *daemon_pid) {
     *daemon_pid = -1;
   }
   pr_info("install_embedded_su: starting\n");
+  if (!init_work_paths()) {
+    pr_error("install_embedded_su: invalid work directory\n");
+    errno = EINVAL;
+    return 0;
+  }
   if (!write_embedded_su()) {
     pr_error("install_embedded_su: write_embedded_su failed errno=%d\n", errno);
     return 0;
@@ -413,8 +474,8 @@ int install_embedded_su(pid_t *daemon_pid) {
   pr_info("install_embedded_su: daemon pid=%d, waiting for socket\n", pid);
 
   for (int i = 0; i < 50; i++) {
-    if (access(SU_SOCK, F_OK) == 0) {
-      pr_success("embedded su daemon ready pid=%d socket=%s\n", pid, SU_SOCK);
+    if (access(su_sock, F_OK) == 0) {
+      pr_success("embedded su daemon ready pid=%d socket=%s\n", pid, su_sock);
       return 1;
     }
     usleep(100000);

@@ -1,5 +1,6 @@
 #include "common.h"
 #include "build_tag.h"
+#include "workspace.h"
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <linux/userfaultfd.h>
@@ -926,8 +927,11 @@ void slide_pselect_stack_copy(void) {
  * the waiter while its stale stack slot may still be reachable. */
 static void slide_report_route_result(void) {
   int words_per_set = slide_pselect_words_per_set();
-  char ppath[64];
-  snprintf(ppath, sizeof(ppath), "/data/local/tmp/paint.log");
+  char ppath[128];
+  if (!rmp_work_path(ppath, sizeof(ppath), "paint.log")) {
+    pr_warning("slide paint file path unavailable\n");
+    return;
+  }
   int pfd = open(ppath, O_WRONLY | O_CREAT | O_APPEND | O_CLOEXEC, 0644);
   if (pfd < 0) {
     pr_warning("slide paint file open FAILED path=%s errno=%d (uid=%d)\n",
